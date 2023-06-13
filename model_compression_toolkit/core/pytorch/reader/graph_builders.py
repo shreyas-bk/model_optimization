@@ -94,7 +94,7 @@ def nodes_builder(model: GraphModule,
             if node_type == getattr:
                 node_has_activation = False
                 Logger.warning(
-                    'Pytorch model has a parameter or constant Tensor value. This can cause unexpected behaviour when '
+                    f'Pytorch model has a parameter or constant Tensor value in {node_type}. This can cause unexpected behaviour when '
                     'converting the model.')
         elif node.op == PLACEHOLDER:
             node_type = DummyPlaceHolder
@@ -115,7 +115,7 @@ def nodes_builder(model: GraphModule,
                 node_type = ConstantHolder
             node_has_activation = False
             Logger.warning(
-                'Pytorch model has a parameter or constant Tensor value. This can cause unexpected behaviour when '
+                f'Pytorch model has a parameter or constant Tensor value, {node.target=}. This can cause unexpected behaviour when '
                 'converting the model.')
         else:
             raise Exception(f'Unknown node type: {node.name}')

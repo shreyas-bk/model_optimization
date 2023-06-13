@@ -90,7 +90,13 @@ def _run_operation(n: BaseNode,
     if isinstance(n, FunctionalNode) and n.inputs_as_list:
         out_tensors_of_n_float = op_func(input_tensors, *op_call_args, **functional_kwargs)
     else:
-        out_tensors_of_n_float = op_func(*input_tensors + op_call_args, **functional_kwargs)
+        # print(f'{op_call_args=}')
+        # print(f'{functional_kwargs=}')
+        # TODO: why is reshape having both op_call_args and functional_kwargs
+        if len(op_call_args)==len(functional_kwargs):
+            out_tensors_of_n_float = op_func(*input_tensors, **functional_kwargs)
+        else:
+            out_tensors_of_n_float = op_func(*input_tensors + op_call_args, **functional_kwargs)
 
     # Add a fake quant node if the node has an activation threshold.
     out_tensors_of_n = out_tensors_of_n_float
