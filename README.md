@@ -126,9 +126,9 @@ is tested on various versions:
 
 ### Usage Example 
 For an example of how to use the post-training quantization, using Keras,
-please use this [link](tutorials/example_keras_mobilenet.py).
+please use this [link](tutorials/notebooks/example_keras_mobilenet.py).
 
-For an example using PyTorch, please use this [link](tutorials/example_pytorch_mobilenet_v2.py).
+For an example using PyTorch, please use this [link](tutorials/notebooks/example_pytorch_mobilenet_v2.py).
 
 For more examples please see the [tutorials' directory](https://github.com/sony/model_optimization/tree/main/tutorials).
 
@@ -152,7 +152,7 @@ In the following table we present the ImageNet validation results for these mode
 | ResNet-18 [3]             | 69.86           | 69.63           |                                      
 | SqueezeNet 1.1 [3]        | 58.128          | 57.678          |                                      
 
-
+For more results, please refer to [quick start](https://github.com/sony/model_optimization/tree/main/tutorials/quick_start).
 
 ## Contributions
 MCT aims at keeping a more up-to-date fork and welcomes contributions from anyone.
