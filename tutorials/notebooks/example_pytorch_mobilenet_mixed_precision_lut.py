@@ -21,6 +21,7 @@ from torchvision.models import mobilenet_v2
 
 import model_compression_toolkit as mct
 
+
 """
 Mixed precision is a method for quantizing a model using different bit widths
 for different layers of the model. 
@@ -133,3 +134,4 @@ if __name__ == '__main__':
                                                                                                  target_kpi=kpi,
                                                                                                  core_config=configuration,
                                                                                                  target_platform_capabilities=target_platform_cap)
+
