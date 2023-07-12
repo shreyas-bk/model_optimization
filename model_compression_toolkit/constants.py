@@ -16,36 +16,44 @@
 import importlib
 
 # Supported frameworks in MCT:
-TENSORFLOW = 'tensorflow'
-PYTORCH = 'pytorch'
-FOUND_TF = importlib.util.find_spec(TENSORFLOW) is not None
+TENSORFLOW = "tensorflow"
+PYTORCH = "pytorch"
+FOUND_TF = False  # importlib.util.find_spec(TENSORFLOW) is not None
+# try:
+#     import tensorflow
+
+#     del tensorflow
+#     FOUND_TF = True
+# except ModuleNotFoundError:
+#     pass
+
 FOUND_TORCH = importlib.util.find_spec("torch") is not None
 FOUND_ONNX = importlib.util.find_spec("onnx") is not None
 FOUND_ONNXRUNTIME = importlib.util.find_spec("onnxruntime") is not None
 
 WEIGHTS_SIGNED = True
 # Minimal threshold to use for quantization ranges:
-MIN_THRESHOLD = (2 ** -16)
+MIN_THRESHOLD = 2**-16
 EPS = 1e-8
 MULTIPLIER_N_BITS = 8
 
 # Quantization attributes:
-OUTPUT_SCALE = 'output_scale'
-THRESHOLD = 'threshold'
-SIGNED = 'is_signed'
-CLUSTER_CENTERS = 'cluster_centers'
-SCALE_PER_CHANNEL = 'scale_per_channel'
-RANGE_MIN = 'range_min'
-RANGE_MAX = 'range_max'
+OUTPUT_SCALE = "output_scale"
+THRESHOLD = "threshold"
+SIGNED = "is_signed"
+CLUSTER_CENTERS = "cluster_centers"
+SCALE_PER_CHANNEL = "scale_per_channel"
+RANGE_MIN = "range_min"
+RANGE_MAX = "range_max"
 
 # BaseNode attributes
-REUSE = 'reuse'
-REUSE_GROUP = 'reuse_group'
+REUSE = "reuse"
+REUSE_GROUP = "reuse_group"
 LAST_AXIS = -1
 
 # Data types:
-DATA_TYPE = 'dtype'
-FLOAT_32 = 'float32'
+DATA_TYPE = "dtype"
+FLOAT_32 = "float32"
 
 # Number of Tensorboard cosine-similarity plots to add:
 NUM_SAMPLES_DISTANCE_TENSORBOARD = 20
@@ -59,9 +67,9 @@ FLOAT_BITWIDTH = 32
 # In Mixed-Precision, a node can have multiple candidates for weights and activations quantization configuration.
 # In order to display a single view of a node (for example, for logging in TensorBoard) we need to track the attributes
 # that are shared among different candidates:
-WEIGHTS_NBITS_ATTRIBUTE = 'weights_n_bits'
-CORRECTED_BIAS_ATTRIBUTE = 'corrected_bias'
-ACTIVATION_NBITS_ATTRIBUTE = 'activation_n_bits'
+WEIGHTS_NBITS_ATTRIBUTE = "weights_n_bits"
+CORRECTED_BIAS_ATTRIBUTE = "corrected_bias"
+ACTIVATION_NBITS_ATTRIBUTE = "activation_n_bits"
 
 # Quantization Parameters Iterative Search Defaults:
 SYMMETRIC_TENSOR_N_ITER = 40
@@ -97,24 +105,24 @@ BITS_TO_BYTES = 8.0
 SOFTMAX_THRESHOLD = 1
 
 # Substitutions node names
-VIRTUAL_WEIGHTS_SUFFIX = '_v_weights'
-VIRTUAL_ACTIVATION_SUFFIX = '_v_activation'
-VIRTUAL_ACTIVATION_WEIGHTS_NODE_PREFIX = 'virtual'
+VIRTUAL_WEIGHTS_SUFFIX = "_v_weights"
+VIRTUAL_ACTIVATION_SUFFIX = "_v_activation"
+VIRTUAL_ACTIVATION_WEIGHTS_NODE_PREFIX = "virtual"
 
 # Quantization config candidate initialization
-ACTIVATION_QUANTIZATION_CFG = 'activation_quantization_cfg'
-WEIGHTS_QUANTIZATION_CFG = 'weights_quantization_cfg'
-QC = 'qc'
-OP_CFG = 'op_cfg'
-ACTIVATION_QUANTIZATION_FN = 'activation_quantization_fn'
-WEIGHTS_QUANTIZATION_FN = 'weights_quantization_fn'
-ACTIVATION_QUANT_PARAMS_FN = 'activation_quantization_params_fn'
-WEIGHTS_QUANT_PARAMS_FN = 'weights_quantization_params_fn'
-WEIGHTS_CHANNELS_AXIS = 'weights_channels_axis'
+ACTIVATION_QUANTIZATION_CFG = "activation_quantization_cfg"
+WEIGHTS_QUANTIZATION_CFG = "weights_quantization_cfg"
+QC = "qc"
+OP_CFG = "op_cfg"
+ACTIVATION_QUANTIZATION_FN = "activation_quantization_fn"
+WEIGHTS_QUANTIZATION_FN = "weights_quantization_fn"
+ACTIVATION_QUANT_PARAMS_FN = "activation_quantization_params_fn"
+WEIGHTS_QUANT_PARAMS_FN = "weights_quantization_params_fn"
+WEIGHTS_CHANNELS_AXIS = "weights_channels_axis"
 
 # Memory graph constants
-DUMMY_NODE = 'dummy_node'
-DUMMY_TENSOR = 'dummy_tensor'
+DUMMY_NODE = "dummy_node"
+DUMMY_TENSOR = "dummy_tensor"
 
 # Jacobian-weights constants
 MIN_JACOBIANS_ITER = 10
