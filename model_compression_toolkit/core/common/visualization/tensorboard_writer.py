@@ -13,33 +13,32 @@
 # limitations under the License.
 # ==============================================================================
 
-from copy import deepcopy
-
 import io
+from copy import deepcopy
+from typing import Any, Dict, List
+
 import numpy as np
-from PIL import Image
 from matplotlib.figure import Figure
+from networkx import topological_sort
+from PIL import Image
 from tensorboard.compat.proto.attr_value_pb2 import AttrValue
 from tensorboard.compat.proto.config_pb2 import RunMetadata
 from tensorboard.compat.proto.event_pb2 import Event, TaggedRunMetadata
 from tensorboard.compat.proto.graph_pb2 import GraphDef
 from tensorboard.compat.proto.node_def_pb2 import NodeDef
-from tensorboard.compat.proto.step_stats_pb2 import StepStats, NodeExecStats, DeviceStepStats, AllocatorMemoryUsed
-from tensorboard.compat.proto.summary_pb2 import HistogramProto
-from tensorboard.compat.proto.summary_pb2 import Summary
+from tensorboard.compat.proto.step_stats_pb2 import AllocatorMemoryUsed, DeviceStepStats, NodeExecStats, StepStats
+from tensorboard.compat.proto.summary_pb2 import HistogramProto, Summary
 from tensorboard.compat.proto.tensor_shape_pb2 import TensorShapeProto
 from tensorboard.summary.writer.event_file_writer import EventFileWriter
-from typing import List, Any, Dict
-from networkx import topological_sort
+
 from model_compression_toolkit.core import FrameworkInfo
-from model_compression_toolkit.core.common import Graph, BaseNode
+from model_compression_toolkit.core.common import BaseNode, Graph
 from model_compression_toolkit.core.common.collectors.statistics_collector import BaseStatsCollector
 
 DEVICE_STEP_STATS = "/device:CPU:0"
 
 
-def get_node_properties(node_dict_to_log: dict,
-                        output_shapes: List[tuple] = None) -> Dict[str, Any]:
+def get_node_properties(node_dict_to_log: dict, output_shapes: List[tuple] = None) -> Dict[str, Any]:
     """
     Create a dictionary with properties for a node to display.
 
@@ -74,7 +73,7 @@ def get_node_properties(node_dict_to_log: dict,
                 proto_dims_list.append(TensorShapeProto.Dim(size=dim))
             tshape_proto = TensorShapeProto(dim=proto_dims_list)
             tshape_protos.append(tshape_proto)
-        node_properties['_output_shapes'] = AttrValue(list=AttrValue.ListValue(shape=tshape_protos))
+        node_properties["_output_shapes"] = AttrValue(list=AttrValue.ListValue(shape=tshape_protos))
     return node_properties
 
 
@@ -86,7 +85,7 @@ class TensorboardWriter(object):
     def __init__(self, dir_path: str, fw_info: FrameworkInfo):
         """
         Initialize a TensorboardWriter object.
-        
+
         Args:
             dir_path: Path to save all events to display on Tensorboard.
             fw_info: FrameworkInfo object (needed for computing nodes' weights memory).
@@ -110,17 +109,16 @@ class TensorboardWriter(object):
 
     def add_histograms(self, graph: Graph, main_tag_name: str):
         """
-        Add histograms to display on Tensorboard. All existing histograms in a graph are 
+        Add histograms to display on Tensorboard. All existing histograms in a graph are
         logged with a tag name main_tag_name.
-        
+
         Args:
             graph: Graph to display all collected histograms it contains.
             main_tag_name: Tag to attach to all histograms.
 
         """
 
-        def __create_hist_proto(bins: np.ndarray,
-                                counts: np.ndarray) -> HistogramProto:
+        def __create_hist_proto(bins: np.ndarray, counts: np.ndarray) -> HistogramProto:
             """
             Create a protobuf for a histogram using collected bins and counts.
 
@@ -133,13 +131,15 @@ class TensorboardWriter(object):
             """
 
             sum_sq = ((bins * bins) * counts).sum()
-            return HistogramProto(min=bins.min(),
-                                  max=bins.max(),
-                                  num=len(bins),
-                                  sum=(bins * counts).sum(),
-                                  sum_squares=sum_sq,
-                                  bucket_limit=bins.tolist(),
-                                  bucket=counts.tolist())
+            return HistogramProto(
+                min=bins.min(),
+                max=bins.max(),
+                num=len(bins),
+                sum=(bins * counts).sum(),
+                sum_squares=sum_sq,
+                bucket_limit=bins.tolist(),
+                bucket=counts.tolist(),
+            )
 
         def __create_histo_event(statistics_collector: BaseStatsCollector):
             """
@@ -151,7 +151,7 @@ class TensorboardWriter(object):
 
             """
             if statistics_collector.require_collection():
-                if hasattr(statistics_collector, 'hc'):
+                if hasattr(statistics_collector, "hc"):
                     if statistics_collector.hc.is_legal:
                         bins, counts = statistics_collector.hc.get_histogram()
                         if bins is not None and counts is not None:
@@ -177,9 +177,7 @@ class TensorboardWriter(object):
             er.add_event(event)
         er.flush()
 
-    def add_graph(self,
-                  graph: Graph,
-                  main_tag_name: str):
+    def add_graph(self, graph: Graph, main_tag_name: str):
         """
         Add a graph to display on Tensorboard. The graph is tagged with the name main_tag_name.
 
@@ -263,7 +261,9 @@ class TensorboardWriter(object):
             dims = []
             if isinstance(output_shape, list):
                 for o in output_shape:
-                    shape_wo_none = (-1,) + o[1:] if o[0] is None else o
+                    shape_wo_none = ()
+                    if len(o) > 0:
+                        shape_wo_none = (-1,) + o[1:] if o[0] is None else o
                     dims.append(shape_wo_none)
             else:
                 dims = [(-1,) + output_shape[1:] if output_shape[0] is None else output_shape]
@@ -282,10 +282,9 @@ class TensorboardWriter(object):
 
             """
 
-            return NodeExecStats(node_name=n.name,
-                                 memory=[AllocatorMemoryUsed(
-                                     total_bytes=int(n.get_memory_bytes(self.fw_info))
-                                 )])
+            return NodeExecStats(
+                node_name=n.name, memory=[AllocatorMemoryUsed(total_bytes=int(n.get_memory_bytes(self.fw_info)))]
+            )
 
         graph_def = GraphDef()  # GraphDef to add to Tensorboard
 
@@ -301,14 +300,14 @@ class TensorboardWriter(object):
             main_node_def.op = n.type.__name__
             op_id = types_dict.get(main_node_def.op, 0)
             if len(graph.incoming_edges(n)) == 0:  # Input layer
-                n.tb_node_def = 'Input/' + n.name
+                n.tb_node_def = "Input/" + n.name
             elif len(graph.out_edges(n)) == 0:  # Output layer
-                n.tb_node_def = 'Output/' + n.name
+                n.tb_node_def = "Output/" + n.name
             else:
-                n.tb_node_def = graph.name + '/' + main_node_def.op + '_' + str(op_id) + '/' + n.name
+                n.tb_node_def = graph.name + "/" + main_node_def.op + "_" + str(op_id) + "/" + n.name
             main_node_def.name = n.tb_node_def
             for e in graph.incoming_edges(n):  # Connect node to its incoming nodes
-                i_tensor = f'{e.source_node.tb_node_def}:{e.source_index}'
+                i_tensor = f"{e.source_node.tb_node_def}:{e.source_index}"
                 main_node_def.input.append(i_tensor)
             # ----------------------------
             # Weights NodeDef
@@ -317,7 +316,7 @@ class TensorboardWriter(object):
             if bool(attr):
                 weights_node_def = NodeDef(attr=get_node_properties(attr))
                 weights_node_def.name = main_node_def.name + ".weights"
-                main_node_def.input.append(f'{weights_node_def.name}:{1}')
+                main_node_def.input.append(f"{weights_node_def.name}:{1}")
                 graph_def.node.extend([weights_node_def])  # Add the node to the graph
             # ----------------------------
             # Activation NodeDef
@@ -327,7 +326,7 @@ class TensorboardWriter(object):
                 act_node_def = NodeDef(attr=get_node_properties(attr, __get_node_output_dims(n)))
                 n.tb_node_def = main_node_def.name + ".activation"
                 act_node_def.name = n.tb_node_def
-                act_node_def.input.append(f'{main_node_def.name}:{0}')
+                act_node_def.input.append(f"{main_node_def.name}:{0}")
                 graph_def.node.extend([act_node_def])  # Add the node to the graph
 
             graph_def.node.extend([main_node_def])  # Add the node to the graph
@@ -339,17 +338,16 @@ class TensorboardWriter(object):
         er.add_event(event)
 
         # Logging nodes memory and computation time statistics
-        stepstats = RunMetadata(step_stats=StepStats(
-            dev_stats=[DeviceStepStats(device=DEVICE_STEP_STATS, node_stats=node_stats)])
+        stepstats = RunMetadata(
+            step_stats=StepStats(dev_stats=[DeviceStepStats(device=DEVICE_STEP_STATS, node_stats=node_stats)])
         )
 
-        trm = TaggedRunMetadata(tag='Resources', run_metadata=stepstats.SerializeToString())
+        trm = TaggedRunMetadata(tag="Resources", run_metadata=stepstats.SerializeToString())
         event = Event(tagged_run_metadata=trm)
         er.add_event(event)
         er.flush()
 
-    def __get_event_writer_by_tag_name(self,
-                                       main_tag_name: str) -> EventFileWriter:
+    def __get_event_writer_by_tag_name(self, main_tag_name: str) -> EventFileWriter:
         """
         Retrieve an EventWriter by a tag name from the mapping the TensorboardWriter holds.
 
@@ -363,7 +361,7 @@ class TensorboardWriter(object):
         if main_tag_name in self.tag_name_to_event_writer:  # if an EventWriter already exists, get it
             er = self.tag_name_to_event_writer.get(main_tag_name)
         else:  # if not - create such an EventWriter and save it
-            er = EventFileWriter(f'{self.dir_path}/{main_tag_name}')
+            er = EventFileWriter(f"{self.dir_path}/{main_tag_name}")
             self.tag_name_to_event_writer[main_tag_name] = er
         return er
 
@@ -382,7 +380,7 @@ class TensorboardWriter(object):
         for n in graph.nodes:
             collector = graph.get_out_stats_collector(n)
             if collector is not None:
-                if hasattr(collector, 'mpcc'):
+                if hasattr(collector, "mpcc"):
                     if collector.mpcc.is_legal:
                         mpcc = deepcopy(collector.mpcc)
                         min_pc = mpcc.min_per_channel
@@ -391,19 +389,21 @@ class TensorboardWriter(object):
                             min_i = min_pc[i]
                             max_i = max_pc[i]
                             # use step for channel index as we log the min/max per channel
-                            min_events.append(Event(step=i, summary=Summary(
-                                value=[Summary.Value(tag=n.name, simple_value=min_i)])))
-                            max_events.append(Event(step=i, summary=Summary(
-                                value=[Summary.Value(tag=n.name, simple_value=max_i)])))
+                            min_events.append(
+                                Event(step=i, summary=Summary(value=[Summary.Value(tag=n.name, simple_value=min_i)]))
+                            )
+                            max_events.append(
+                                Event(step=i, summary=Summary(value=[Summary.Value(tag=n.name, simple_value=max_i)]))
+                            )
 
         # Use a new tag to include both main tag and a 'min_per_channel' tag.
-        er = self.__get_event_writer_by_tag_name(main_tag_name + '/min_per_channel')
+        er = self.__get_event_writer_by_tag_name(main_tag_name + "/min_per_channel")
 
         for e in min_events:
             er.add_event(e)
 
         # Use a new tag to include both main tag and a 'max_per_channel' tag.
-        er = self.__get_event_writer_by_tag_name(main_tag_name + '/max_per_channel')
+        er = self.__get_event_writer_by_tag_name(main_tag_name + "/max_per_channel")
         for e in max_events:
             er.add_event(e)
 
@@ -423,18 +423,19 @@ class TensorboardWriter(object):
         for n in graph.nodes:
             collector = graph.get_out_stats_collector(n)
             if collector is not None:
-                if hasattr(collector, 'mc'):
+                if hasattr(collector, "mc"):
                     if collector.mc.is_legal:
                         mc = deepcopy(collector.mc)
                         mean_pc = mc.state
                         for i in range(len(mean_pc)):
                             mean_i = mean_pc[i]
                             # use step for channel index as we log the mean per channel
-                            mean_events.append(Event(step=i, summary=Summary(
-                                value=[Summary.Value(tag=n.name, simple_value=mean_i)])))
+                            mean_events.append(
+                                Event(step=i, summary=Summary(value=[Summary.Value(tag=n.name, simple_value=mean_i)]))
+                            )
 
         # Get the event writer for this tag name
-        er = self.__get_event_writer_by_tag_name(main_tag_name + '/mean_per_channel')
+        er = self.__get_event_writer_by_tag_name(main_tag_name + "/mean_per_channel")
 
         for e in mean_events:
             er.add_event(e)
@@ -455,10 +456,7 @@ class TensorboardWriter(object):
         self.add_min_max(graph, main_tag_name)
         self.add_mean(graph, main_tag_name)
 
-    def add_figure(self,
-                   figure: Figure,
-                   figure_tag: str,
-                   main_tag_name: str = 'figures'):
+    def add_figure(self, figure: Figure, figure_tag: str, main_tag_name: str = "figures"):
         """
         Add matplotlib figure to display. The figure tag is combined from a main_main_tag_name
         and a specific figure_tag for that figure.
@@ -475,7 +473,7 @@ class TensorboardWriter(object):
 
         h, w, c = data.shape
         output = io.BytesIO()
-        Image.fromarray(data).save(output, format='PNG')
+        Image.fromarray(data).save(output, format="PNG")
 
         img_summary = Summary.Image(height=h, width=w, colorspace=c, encoded_image_string=output.getvalue())
         output.close()

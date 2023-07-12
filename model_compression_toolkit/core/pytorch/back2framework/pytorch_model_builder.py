@@ -14,30 +14,28 @@
 # ==============================================================================
 from abc import abstractmethod
 from functools import partial
-from typing import Tuple, Any, Dict, List, Union, Callable
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import torch
+from mct_quantizers.common.constants import ACTIVATION_HOLDER_QUANTIZER
 from networkx import topological_sort
 
-from model_compression_toolkit.core import FrameworkInfo
-from model_compression_toolkit.core import common
+from model_compression_toolkit.core import FrameworkInfo, common
 from model_compression_toolkit.core.common import BaseNode, Graph
 from model_compression_toolkit.core.common.back2framework.base_model_builder import BaseModelBuilder
 from model_compression_toolkit.core.common.graph.edge import EDGE_SINK_INDEX
 from model_compression_toolkit.core.common.graph.functional_node import FunctionalNode
 from model_compression_toolkit.core.common.user_info import UserInformation
-from model_compression_toolkit.core.pytorch.back2framework.instance_builder import node_builder, identity_wrapper
-from model_compression_toolkit.core.pytorch.default_framework_info import DEFAULT_PYTORCH_INFO
-from model_compression_toolkit.core.pytorch.reader.node_holders import DummyPlaceHolder, BufferHolder
-from model_compression_toolkit.core.pytorch.utils import get_working_device
+from model_compression_toolkit.core.pytorch.back2framework.instance_builder import node_builder
 from model_compression_toolkit.core.pytorch.constants import BUFFER
-from mct_quantizers.common.constants import ACTIVATION_HOLDER_QUANTIZER
+from model_compression_toolkit.core.pytorch.default_framework_info import DEFAULT_PYTORCH_INFO
+from model_compression_toolkit.core.pytorch.reader.node_holders import BufferHolder, DummyPlaceHolder
+from model_compression_toolkit.core.pytorch.utils import get_working_device
 
 
-def _build_input_tensors_list(node: BaseNode,
-                              graph: Graph,
-                              inputs: Tuple[Any],
-                              node_to_output_tensors_dict: Dict[BaseNode, List]) -> List[List]:
+def _build_input_tensors_list(
+    node: BaseNode, graph: Graph, inputs: Tuple[Any], node_to_output_tensors_dict: Dict[BaseNode, List]
+) -> List[List]:
     """
     Given a node, build a list of input tensors the node gets. The list is built
     based on the node's incoming edges and previous nodes' output tensors.
@@ -64,11 +62,9 @@ def _build_input_tensors_list(node: BaseNode,
     return input_tensors
 
 
-def _run_operation(n: BaseNode,
-                   input_tensors: List,
-                   op_func: Any,
-                   quantize_node_activation_fn,
-                   use_activation_quantization: bool) -> Tuple[Union[List, torch.Tensor], Union[List, torch.Tensor]]:
+def _run_operation(
+    n: BaseNode, input_tensors: List, op_func: Any, quantize_node_activation_fn, use_activation_quantization: bool
+) -> Tuple[Union[List, torch.Tensor], Union[List, torch.Tensor]]:
     """
     Applying the layer (op_func) to the input tensors (input_tensors).
     If quantized is set to True, and the layer's corresponding node (n) has quantization
@@ -90,13 +86,16 @@ def _run_operation(n: BaseNode,
     if isinstance(n, FunctionalNode) and n.inputs_as_list:
         out_tensors_of_n_float = op_func(input_tensors, *op_call_args, **functional_kwargs)
     else:
-        # print(f'{op_call_args=}')
-        # print(f'{functional_kwargs=}')
-        # TODO: why is reshape having both op_call_args and functional_kwargs
-        if len(op_call_args)==len(functional_kwargs):
-            out_tensors_of_n_float = op_func(*input_tensors, **functional_kwargs)
-        else:
-            out_tensors_of_n_float = op_func(*input_tensors + op_call_args, **functional_kwargs)
+        # # print(f'{op_call_args=}')
+        # # print(f'{functional_kwargs=}')
+        # # TODO: why is reshape having both op_call_args and functional_kwargs
+        # # if len(op_call_args)==len(functional_kwargs):
+        # if op_func == torch.reshape and "shape" in functional_kwargs:
+        #     print(f"shape found in functional_kwargs for {op_func=}, {op_call_args=}")
+        #     out_tensors_of_n_float = op_func(*input_tensors, **functional_kwargs)
+        # else:
+        #     out_tensors_of_n_float = op_func(*input_tensors + op_call_args, **functional_kwargs)
+        out_tensors_of_n_float = op_func(*input_tensors + op_call_args, **functional_kwargs)
 
     # Add a fake quant node if the node has an activation threshold.
     out_tensors_of_n = out_tensors_of_n_float
@@ -122,9 +121,7 @@ def _find_by_node_name(node_to_output_tensors_dict: dict, node_name: str):
     return None
 
 
-def _generate_outputs(
-        out_nodes: List[BaseNode],
-        node_to_output_tensors_dict: dict):
+def _generate_outputs(out_nodes: List[BaseNode], node_to_output_tensors_dict: dict):
     """
     Args:
         out_nodes: List of output nodes.
@@ -148,12 +145,14 @@ class PytorchModel(torch.nn.Module):
     Class for reconstructing a Pytorch model from a graph
     """
 
-    def __init__(self,
-                 graph: Graph,
-                 append2output: List[Any] = None,
-                 return_float_outputs: bool = False,
-                 wrapper: Callable = None,
-                 get_activation_quantizer_holder_fn: Callable = None):
+    def __init__(
+        self,
+        graph: Graph,
+        append2output: List[Any] = None,
+        return_float_outputs: bool = False,
+        wrapper: Callable = None,
+        get_activation_quantizer_holder_fn: Callable = None,
+    ):
         """
         Construct a Pytorch model.
 
@@ -187,9 +186,7 @@ class PytorchModel(torch.nn.Module):
         return self.get_activation_quantizer_holder is not None
 
     @abstractmethod
-    def _quantize_node_activations(self,
-                                   node: BaseNode,
-                                   input_tensors: List[torch.Tensor]) -> List[torch.Tensor]:
+    def _quantize_node_activations(self, node: BaseNode, input_tensors: List[torch.Tensor]) -> List[torch.Tensor]:
         """
         Quantize node's activation given input tensors.
 
@@ -201,8 +198,9 @@ class PytorchModel(torch.nn.Module):
             Output of the node.
 
         """
-        raise NotImplemented(f'{self.__class__.__name__} '
-                             f'have to implement a method for quantization activation nodes.')  # pragma: no cover
+        raise NotImplementedError(
+            f"{self.__class__.__name__} " f"have to implement a method for quantization activation nodes."
+        )  # pragma: no cover
 
     def wrap(self, node):
         """
@@ -237,20 +235,20 @@ class PytorchModel(torch.nn.Module):
             else:
                 self.add_module(node.name, node_op)
                 if node.type == BufferHolder:
-                    self.get_submodule(node.name). \
-                        register_buffer(node.name,
-                                        torch.Tensor(node.get_weights_by_keys(BUFFER)).to(get_working_device()))
+                    self.get_submodule(node.name).register_buffer(
+                        node.name, torch.Tensor(node.get_weights_by_keys(BUFFER)).to(get_working_device())
+                    )
 
             # Add activation quantization modules if an activation holder is configured for this node
             if node.is_activation_quantization_enabled() and self.get_activation_quantizer_holder is not None:
                 activation_quantizer_holder = self.get_activation_quantizer_holder(node)
                 if activation_quantizer_holder is not None:
-                    self.add_module(node.name + '_' + ACTIVATION_HOLDER_QUANTIZER, activation_quantizer_holder)
+                    self.add_module(node.name + "_" + ACTIVATION_HOLDER_QUANTIZER, activation_quantizer_holder)
                     self.node_to_activation_quantization_holder.update(
-                        {node.name: node.name + '_' + ACTIVATION_HOLDER_QUANTIZER})
+                        {node.name: node.name + "_" + ACTIVATION_HOLDER_QUANTIZER}
+                    )
 
-    def forward(self,
-                *args: Any) -> Any:
+    def forward(self, *args: Any) -> Any:
         """
         Args:
             args: argument input tensors to model.
@@ -261,20 +259,19 @@ class PytorchModel(torch.nn.Module):
         node_to_output_tensors_dict_float = dict()
         configurable_nodes = self.graph.get_configurable_sorted_nodes_names()
         for node in self.node_sort:
-            input_tensors = _build_input_tensors_list(node,
-                                                      self.graph,
-                                                      args,
-                                                      node_to_output_tensors_dict)
+            input_tensors = _build_input_tensors_list(node, self.graph, args, node_to_output_tensors_dict)
 
             op_func = self._get_op_func(node, configurable_nodes)
             use_activation_quantization, activation_quantization_fn = self._get_activation_quantization_fn(node)
 
             # Run node operation and fetch outputs
-            out_tensors_of_n, out_tensors_of_n_float = _run_operation(node,
-                                                                      input_tensors,
-                                                                      op_func=op_func,
-                                                                      quantize_node_activation_fn=activation_quantization_fn,
-                                                                      use_activation_quantization=use_activation_quantization)
+            out_tensors_of_n, out_tensors_of_n_float = _run_operation(
+                node,
+                input_tensors,
+                op_func=op_func,
+                quantize_node_activation_fn=activation_quantization_fn,
+                use_activation_quantization=use_activation_quantization,
+            )
 
             if isinstance(out_tensors_of_n, list):
                 node_to_output_tensors_dict.update({node: out_tensors_of_n})
@@ -284,18 +281,20 @@ class PytorchModel(torch.nn.Module):
                 node_to_output_tensors_dict_float.update({node: [out_tensors_of_n_float]})
 
         if self.append2output:
-            outputs = _generate_outputs(self.append2output,
-                                        node_to_output_tensors_dict_float if self.return_float_outputs else node_to_output_tensors_dict)
+            outputs = _generate_outputs(
+                self.append2output,
+                node_to_output_tensors_dict_float if self.return_float_outputs else node_to_output_tensors_dict,
+            )
         else:
-            outputs = _generate_outputs([ot.node for ot in self.graph.get_outputs()],
-                                        node_to_output_tensors_dict_float if self.return_float_outputs else node_to_output_tensors_dict)
+            outputs = _generate_outputs(
+                [ot.node for ot in self.graph.get_outputs()],
+                node_to_output_tensors_dict_float if self.return_float_outputs else node_to_output_tensors_dict,
+            )
             if len(outputs) == 1:
                 outputs = outputs[0]
         return outputs
 
-    def _get_op_func(self,
-                     node: BaseNode,
-                     configurable_nodes_names: List[str]) -> Any:
+    def _get_op_func(self, node: BaseNode, configurable_nodes_names: List[str]) -> Any:
         """
         Gets the operation function that runs the actual inference of the nodes compatible layer.
 
@@ -336,13 +335,15 @@ class PyTorchModelBuilder(BaseModelBuilder):
     Builder of PyTorch models.
     """
 
-    def __init__(self,
-                 graph: common.Graph,
-                 append2output=None,
-                 fw_info: FrameworkInfo = DEFAULT_PYTORCH_INFO,
-                 return_float_outputs: bool = False,
-                 wrapper: Callable = None,
-                 get_activation_quantizer_holder_fn: Callable = None):
+    def __init__(
+        self,
+        graph: common.Graph,
+        append2output=None,
+        fw_info: FrameworkInfo = DEFAULT_PYTORCH_INFO,
+        return_float_outputs: bool = False,
+        wrapper: Callable = None,
+        get_activation_quantizer_holder_fn: Callable = None,
+    ):
         """
 
         Args:
@@ -354,10 +355,7 @@ class PyTorchModelBuilder(BaseModelBuilder):
             get_activation_quantizer_holder_fn: Function to retrieve a quantization holder for a node.
         """
 
-        super().__init__(graph,
-                         append2output,
-                         fw_info,
-                         return_float_outputs)
+        super().__init__(graph, append2output, fw_info, return_float_outputs)
 
         self.wrapper = wrapper
         self.get_activation_quantizer_holder_fn = get_activation_quantizer_holder_fn
@@ -368,8 +366,13 @@ class PyTorchModelBuilder(BaseModelBuilder):
         Returns: Pytorch model and user information.
 
         """
-        return PytorchModel(self.graph,
-                            self.append2output,
-                            return_float_outputs=self.return_float_outputs,
-                            wrapper=self.wrapper,
-                            get_activation_quantizer_holder_fn=self.get_activation_quantizer_holder_fn), self.graph.user_info
+        return (
+            PytorchModel(
+                self.graph,
+                self.append2output,
+                return_float_outputs=self.return_float_outputs,
+                wrapper=self.wrapper,
+                get_activation_quantizer_holder_fn=self.get_activation_quantizer_holder_fn,
+            ),
+            self.graph.user_info,
+        )
