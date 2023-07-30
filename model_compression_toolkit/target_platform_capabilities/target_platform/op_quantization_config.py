@@ -35,7 +35,8 @@ class OpQuantizationConfig:
                  quantization_preserving: bool,
                  fixed_scale: float,
                  fixed_zero_point: int,
-                 weights_multiplier_nbits: int  # If None - set 8 in hptq, o.w use it
+                 weights_multiplier_nbits: int,  # If None - set 8 in hptq, o.w use it
+                 layers_to_not_quantize = [],
                  ):
         """
 
@@ -64,6 +65,7 @@ class OpQuantizationConfig:
         self.fixed_scale = fixed_scale
         self.fixed_zero_point = fixed_zero_point
         self.weights_multiplier_nbits = weights_multiplier_nbits
+        self.layers_to_not_quantize = layers_to_not_quantize
 
     def get_info(self):
         """

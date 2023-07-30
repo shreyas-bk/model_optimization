@@ -64,7 +64,7 @@ if FOUND_TORCH:
             f'PytorchActivationQuantizationHolder supports a single quantizer but {len(activation_quantizers)} quantizers '
             f'were found for node {node}')
 
-    def get_exportable_pytorch_model(graph: Graph):
+    def get_exportable_pytorch_model(graph: Graph, layers_to_not_quantize):
         """
         Convert graph to fully quantized PyTorch model.
 
@@ -76,7 +76,9 @@ if FOUND_TORCH:
         """
         return PyTorchModelBuilder(graph=graph,
                                    wrapper=fully_quantized_wrapper,
-                                   get_activation_quantizer_holder_fn=get_activation_quantizer_holder).build_model()
+                                   get_activation_quantizer_holder_fn=get_activation_quantizer_holder, 
+                                   layers_to_not_quantize=layers_to_not_quantize,
+                                   ).build_model()
 
 else:
     def get_exportable_pytorch_model(*args, **kwargs):  # pragma: no cover

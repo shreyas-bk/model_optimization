@@ -152,6 +152,7 @@ class PytorchModel(torch.nn.Module):
         return_float_outputs: bool = False,
         wrapper: Callable = None,
         get_activation_quantizer_holder_fn: Callable = None,
+        layers_to_not_quantize = [],
     ):
         """
         Construct a Pytorch model.
@@ -172,6 +173,7 @@ class PytorchModel(torch.nn.Module):
         self.return_float_outputs = return_float_outputs
         self.wrapper = wrapper
         self.get_activation_quantizer_holder = get_activation_quantizer_holder_fn
+        self.layers_to_not_quantize = layers_to_not_quantize
         self._add_modules()
 
     # todo: Move to parent class BaseModelBuilder
@@ -202,7 +204,7 @@ class PytorchModel(torch.nn.Module):
             f"{self.__class__.__name__} " f"have to implement a method for quantization activation nodes."
         )  # pragma: no cover
 
-    def wrap(self, node):
+    def wrap(self, node, do_not_quantize):
         """
         Wraps a node operation with a wrapper, if one is available.
 
@@ -212,12 +214,12 @@ class PytorchModel(torch.nn.Module):
         Returns: the node's operation. If a wrapper is available, the operation is wrapped.
         """
         if isinstance(node, FunctionalNode):
-            if self.wrapper is None:
+            if self.wrapper is None or do_not_quantize:
                 node_op = node.type
             else:
                 node_op = self.wrapper(node, node.type)
         else:
-            if self.wrapper is None or node.type == BufferHolder:
+            if self.wrapper is None or node.type == BufferHolder or do_not_quantize:
                 node_op = node_builder(node)
             else:
                 node_op = self.wrapper(node, node_builder(node))
@@ -228,7 +230,8 @@ class PytorchModel(torch.nn.Module):
         Build and add the modules and functional nodes from node_sort list as attributes to PytorchModel
         """
         for node in self.node_sort:
-            node_op = self.wrap(node)
+            do_not_quantize = node.name in self.layers_to_not_quantize or (len(self.layers_to_not_quantize)>0 and self.layers_to_not_quantize[0]==-1)
+            node_op = self.wrap(node, do_not_quantize)
             if isinstance(node, FunctionalNode):
                 # for functional layers
                 setattr(self, node.name, node_op)
@@ -240,7 +243,7 @@ class PytorchModel(torch.nn.Module):
                     )
 
             # Add activation quantization modules if an activation holder is configured for this node
-            if node.is_activation_quantization_enabled() and self.get_activation_quantizer_holder is not None:
+            if node.is_activation_quantization_enabled() and self.get_activation_quantizer_holder is not None and not do_not_quantize:
                 activation_quantizer_holder = self.get_activation_quantizer_holder(node)
                 if activation_quantizer_holder is not None:
                     self.add_module(node.name + "_" + ACTIVATION_HOLDER_QUANTIZER, activation_quantizer_holder)
@@ -343,6 +346,8 @@ class PyTorchModelBuilder(BaseModelBuilder):
         return_float_outputs: bool = False,
         wrapper: Callable = None,
         get_activation_quantizer_holder_fn: Callable = None,
+        layers_to_not_quantize = [],
+
     ):
         """
 
@@ -359,6 +364,7 @@ class PyTorchModelBuilder(BaseModelBuilder):
 
         self.wrapper = wrapper
         self.get_activation_quantizer_holder_fn = get_activation_quantizer_holder_fn
+        self.layers_to_not_quantize = layers_to_not_quantize
 
     def build_model(self) -> Tuple[PytorchModel, UserInformation]:
         """
@@ -373,6 +379,7 @@ class PyTorchModelBuilder(BaseModelBuilder):
                 return_float_outputs=self.return_float_outputs,
                 wrapper=self.wrapper,
                 get_activation_quantizer_holder_fn=self.get_activation_quantizer_holder_fn,
+                layers_to_not_quantize = self.layers_to_not_quantize
             ),
             self.graph.user_info,
         )
