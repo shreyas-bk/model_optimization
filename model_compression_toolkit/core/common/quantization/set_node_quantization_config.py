@@ -74,7 +74,10 @@ def set_quantization_configs_to_node(node: BaseNode,
         mixed_precision_enable: is mixed precision enabled
     """
     node_qc_options = node.get_qco(tpc)
-
+    layers_to_promote = node_qc_options.base_config.layers_to_promote
+    if node.name in layers_to_promote.keys():
+        print('PROMOTING: ', node.name)
+        node_qc_options.base_config.activation_n_bits = layers_to_promote[node.name]
     # Create QC candidates for weights and activation combined
     weight_channel_axis = fw_info.kernel_channels_mapping.get(node.type)[0]
     node.candidates_quantization_cfg = _create_node_candidates_qc(quant_config,

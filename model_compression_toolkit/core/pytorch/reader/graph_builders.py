@@ -151,6 +151,7 @@ def nodes_builder(model: GraphModule,
                     input_shape += [[1]]
 
         # extract output shapes
+        print(node)
         if node.meta[TYPE] == torch.Tensor:
             output_shape = [list(node.meta[TENSOR_META].shape)]
         elif node.meta[TYPE] in (list, tuple):
