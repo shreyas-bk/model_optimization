@@ -102,7 +102,8 @@ def get_activation_inferable_quantizer_kwargs(node_qc: NodeActivationQuantizatio
     elif quantization_method in [QuantizationMethod.UNIFORM]:
         return {qi_inferable_quantizers_constants.NUM_BITS: node_qc.activation_n_bits,
                 qi_inferable_quantizers_constants.MIN_RANGE: np.asarray([node_qc.activation_quantization_params[RANGE_MIN]]),
-                qi_inferable_quantizers_constants.MAX_RANGE: np.asarray([node_qc.activation_quantization_params[RANGE_MAX]])}
+                qi_inferable_quantizers_constants.MAX_RANGE: np.asarray([node_qc.activation_quantization_params[RANGE_MAX]]),
+                'range_multiplier': node_qc.range_multiplier}
 
     elif quantization_method in [QuantizationMethod.LUT_POT_QUANTIZER]:
         return {qi_inferable_quantizers_constants.NUM_BITS: node_qc.activation_n_bits,

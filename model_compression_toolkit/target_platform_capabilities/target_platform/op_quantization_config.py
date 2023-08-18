@@ -37,7 +37,8 @@ class OpQuantizationConfig:
                  fixed_zero_point: int,
                  weights_multiplier_nbits: int,  # If None - set 8 in hptq, o.w use it
                  layers_to_not_quantize = [],
-                 layers_to_promote = {}
+                 layers_to_promote = {},
+                 range_multiplier = 1
                  ):
         """
 
@@ -68,6 +69,7 @@ class OpQuantizationConfig:
         self.weights_multiplier_nbits = weights_multiplier_nbits
         self.layers_to_not_quantize = layers_to_not_quantize
         self.layers_to_promote = layers_to_promote
+        self.range_multiplier = range_multiplier
 
     def get_info(self):
         """

@@ -74,6 +74,9 @@ class HistogramCollector(BaseCollector):
             merged_histogram_min = np.min(bins_stack)
             merged_histogram_max = np.max(bins_stack)
             merged_bin_width = np.min(bins_stack[:, 1] - bins_stack[:, 0])
+            count_bins = (merged_histogram_max+merged_bin_width-merged_histogram_min)/merged_bin_width
+            # if count_bins>10000:
+            #     merged_bin_width = (merged_histogram_max+merged_bin_width-merged_histogram_min)/10000
             merged_histogram_bins = np.arange(merged_histogram_min, merged_histogram_max+merged_bin_width, merged_bin_width)
 
             merged_histogram_counts = None

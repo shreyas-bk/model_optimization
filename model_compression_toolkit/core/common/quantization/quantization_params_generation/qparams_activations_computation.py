@@ -64,7 +64,7 @@ def get_activations_qparams(activation_quant_cfg: NodeActivationQuantizationConf
         elif activation_quant_cfg.activation_quantization_method == QuantizationMethod.UNIFORM:
             activation_quant_cfg.activation_quantization_params_fn = \
                 quantization_params_generation.uniform_no_clipping_selection_min_max
-
+    # print(len(bins_counts))
     activation_params = activation_quant_cfg.activation_quantization_params_fn(bins_values,
                                                                                bins_counts,
                                                                                activation_quant_cfg.l_p_value,
@@ -74,5 +74,4 @@ def get_activations_qparams(activation_quant_cfg: NodeActivationQuantizationConf
                                                                                min_threshold=activation_quant_cfg.min_threshold,
                                                                                quant_error_method=activation_quant_cfg.activation_error_method)
     activation_params.update({SIGNED: signed})
-
     return activation_params

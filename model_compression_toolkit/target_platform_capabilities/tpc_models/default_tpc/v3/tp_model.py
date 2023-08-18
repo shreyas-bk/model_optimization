@@ -135,6 +135,7 @@ def generate_tp_model(default_config: OpQuantizationConfig,
 
         # Define operations sets without quantization configuration
         # options (useful for creating fusing patterns, for example):
+        tp.OperatorsSet("LN")
         any_relu = tp.OperatorsSet("AnyReLU")
         add = tp.OperatorsSet("Add")
         sub = tp.OperatorsSet("Sub")

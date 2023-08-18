@@ -21,7 +21,7 @@ from torch import add, sub, mul, div, flatten, reshape, split, unsqueeze, dropou
 from torch.nn import Conv2d, Linear, BatchNorm2d, ConvTranspose2d
 from torch.nn import Dropout, Flatten, Hardtanh
 from torch.nn import ReLU, ReLU6, PReLU, SiLU, Sigmoid, Tanh, Hardswish, LeakyReLU
-from torch.nn.functional import relu, relu6, prelu, silu, hardtanh, hardswish, leaky_relu
+from torch.nn.functional import relu, relu6, prelu, silu, hardtanh, hardswish, leaky_relu, layer_norm
 
 from model_compression_toolkit.target_platform_capabilities.tpc_models.default_tpc.v3.tp_model import get_tp_model
 import model_compression_toolkit as mct
@@ -72,6 +72,7 @@ def generate_pytorch_tpc(name: str, tp_model: tp.TargetPlatformModel):
                                                     topk])
 
         tp.OperationsSetToLayers("Conv", [Conv2d, ConvTranspose2d])
+        tp.OperationsSetToLayers("LN", [layer_norm])
         tp.OperationsSetToLayers("FullyConnected", [Linear])
         tp.OperationsSetToLayers("AnyReLU", [torch.relu,
                                              ReLU,

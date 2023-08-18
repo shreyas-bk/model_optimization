@@ -48,13 +48,26 @@ def set_quantization_configuration_to_graph(graph: Graph,
     Returns:
         The graph with quantization configurations attached to each node in it.
     """
-
+    first_node_name = ''
+    last_node_name = ''
+    
+    for n in graph.nodes:
+        node_qc_options = n.get_qco(graph.tpc)
+        if node_qc_options.base_config.enable_activation_quantization :
+            first_node_name = n.name
+            break
+    for n in graph.nodes:
+        node_qc_options = n.get_qco(graph.tpc)
+        if node_qc_options.base_config.enable_activation_quantization:
+            last_node_name = n.name
+    first_and_last_node_to_promote = [first_node_name, last_node_name]
     for n in graph.nodes:
         set_quantization_configs_to_node(node=n,
                                          quant_config=quant_config,
                                          fw_info=graph.fw_info,
                                          tpc=graph.tpc,
-                                         mixed_precision_enable=mixed_precision_enable)
+                                         mixed_precision_enable=mixed_precision_enable,
+                                         first_and_last_node_to_promote=first_and_last_node_to_promote)
     return graph
 
 
@@ -62,7 +75,8 @@ def set_quantization_configs_to_node(node: BaseNode,
                                      quant_config: QuantizationConfig,
                                      fw_info: FrameworkInfo,
                                      tpc: TargetPlatformCapabilities,
-                                     mixed_precision_enable: bool = False):
+                                     mixed_precision_enable: bool = False,
+                                     first_and_last_node_to_promote: list = [None, None]):
     """
     Create and set quantization configurations to a node (for both weights and activation).
 
@@ -75,22 +89,41 @@ def set_quantization_configs_to_node(node: BaseNode,
     """
     node_qc_options = node.get_qco(tpc)
     layers_to_promote = node_qc_options.base_config.layers_to_promote
+    original_bits = node_qc_options.base_config.activation_n_bits
+    if 'first_and_last' in layers_to_promote.keys():
+        bit_width = layers_to_promote['first_and_last']
+        if node.name in first_and_last_node_to_promote:
+            node_qc_options.base_config.activation_n_bits = bit_width
+            print('PROMOTING: ', node.name)
     if node.name in layers_to_promote.keys():
+        with open('/home/shreyas.kera/ng50_promote_layerwise_MSE.txt', 'a') as f:
+            f.writelines('PROMOTING: '+str(node.name)+'\n')
         print('PROMOTING: ', node.name)
         node_qc_options.base_config.activation_n_bits = layers_to_promote[node.name]
+    # print(node.name, 'ACTIVATION BITS', node_qc_options.base_config.activation_n_bits)
     # Create QC candidates for weights and activation combined
     weight_channel_axis = fw_info.kernel_channels_mapping.get(node.type)[0]
+    
     node.candidates_quantization_cfg = _create_node_candidates_qc(quant_config,
-                                                                  fw_info,
-                                                                  weight_channel_axis,
-                                                                  node_qc_options,
-                                                                  mixed_precision_enable=mixed_precision_enable)
+                                                                fw_info,
+                                                                weight_channel_axis,
+                                                                node_qc_options,
+                                                                mixed_precision_enable=mixed_precision_enable)
 
     for candidate_qc in node.candidates_quantization_cfg:
         candidate_qc.weights_quantization_cfg.enable_weights_quantization = \
             candidate_qc.weights_quantization_cfg.enable_weights_quantization and node.has_weights_to_quantize(fw_info)
         candidate_qc.activation_quantization_cfg.enable_activation_quantization = \
             candidate_qc.activation_quantization_cfg.enable_activation_quantization and node.get_has_activation()
+    for qc in node.candidates_quantization_cfg:
+        if node.name not in node_qc_options.base_config.layers_to_not_quantize:
+            qc.activation_quantization_cfg.enable_activation_quantization = False
+            qc.weights_quantization_cfg.enable_weights_quantization = False
+        else:
+            pass
+            with open('/home/shreyas.kera/ng50_demote_layerwise_MSE.txt', 'a') as f:
+                f.writelines('DEMOTING '+node.name+'\n')
+    node_qc_options.base_config.activation_n_bits = original_bits
 
 
 def create_node_activation_qc(qc: QuantizationConfig,
