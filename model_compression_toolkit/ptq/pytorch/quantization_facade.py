@@ -130,7 +130,7 @@ if FOUND_TORCH:
                            'calling pytorch_post_training_quantization_experimental. '
                            'If you encounter an issue please file a bug.')
 
-            return get_exportable_pytorch_model(tg, [])
+            return get_exportable_pytorch_model(tg, target_platform_capabilities.get_default_op_qc().layers_to_not_quantize)
 
         quantized_model, user_info = export_model(tg,
                                                   DEFAULT_PYTORCH_INFO,

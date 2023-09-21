@@ -46,8 +46,8 @@ class QuantizationErrorMethod(Enum):
 class QuantizationConfig:
 
     def __init__(self,
-                 activation_error_method: QuantizationErrorMethod = QuantizationErrorMethod.MSE,
-                 weights_error_method: QuantizationErrorMethod = QuantizationErrorMethod.MSE,
+                 activation_error_method: QuantizationErrorMethod = QuantizationErrorMethod.NOCLIPPING,
+                 weights_error_method: QuantizationErrorMethod = QuantizationErrorMethod.NOCLIPPING,
                  relu_bound_to_power_of_2: bool = False,
                  weights_bias_correction: bool = True,
                  weights_per_channel_threshold: bool = True,

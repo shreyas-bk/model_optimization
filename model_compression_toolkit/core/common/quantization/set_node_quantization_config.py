@@ -115,14 +115,14 @@ def set_quantization_configs_to_node(node: BaseNode,
             candidate_qc.weights_quantization_cfg.enable_weights_quantization and node.has_weights_to_quantize(fw_info)
         candidate_qc.activation_quantization_cfg.enable_activation_quantization = \
             candidate_qc.activation_quantization_cfg.enable_activation_quantization and node.get_has_activation()
-    for qc in node.candidates_quantization_cfg:
-        if node.name not in node_qc_options.base_config.layers_to_not_quantize:
-            qc.activation_quantization_cfg.enable_activation_quantization = False
-            qc.weights_quantization_cfg.enable_weights_quantization = False
-        else:
-            pass
-            with open('/home/shreyas.kera/ng50_demote_layerwise_MSE.txt', 'a') as f:
-                f.writelines('DEMOTING '+node.name+'\n')
+    # for qc in node.candidates_quantization_cfg:
+    #     if node.name not in node_qc_options.base_config.layers_to_not_quantize:
+    #         qc.activation_quantization_cfg.enable_activation_quantization = False
+    #         qc.weights_quantization_cfg.enable_weights_quantization = False
+    #     else:
+    #         pass
+    #         with open('/home/shreyas.kera/ng50_demote_layerwise_MSE.txt', 'a') as f:
+    #             f.writelines('DEMOTING '+node.name+'\n')
     node_qc_options.base_config.activation_n_bits = original_bits
 
 

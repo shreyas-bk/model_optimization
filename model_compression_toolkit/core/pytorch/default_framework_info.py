@@ -14,7 +14,7 @@
 # ==============================================================================
 from torch.nn import Hardsigmoid, ReLU, ReLU6, Softmax, Sigmoid
 from torch.nn.functional import hardsigmoid, relu, relu6, softmax
-from torch.nn import Conv2d, ConvTranspose2d, Linear
+from torch.nn import Conv2d, ConvTranspose2d, Linear, Conv1d
 from torch import sigmoid
 
 from model_compression_toolkit.core.common.defaultdict import DefaultDict
@@ -31,6 +31,7 @@ Map each layer to a list of its' weights attributes that should get quantized.
 If a layer that is not listed here is queried, [None] is returned.
 """
 KERNEL_ATTRIBUTES = DefaultDict({Conv2d: [KERNEL],
+                                 Conv1d: [KERNEL],
                                  ConvTranspose2d: [KERNEL],
                                  Linear: [KERNEL]},
                                 lambda: [None])
@@ -41,6 +42,7 @@ Map's values are tuples of (output_channel_index, input_channel_index).
 Default value is returned for layers that are not included.
 """
 DEFAULT_CHANNEL_AXIS_DICT = DefaultDict({Conv2d: (0, 1),
+                                         Conv1d: (0, 1),
                                          Linear: (0, 1),
                                          ConvTranspose2d: (1, 0)},
                                         lambda: (None, None))
@@ -50,6 +52,7 @@ Map a layer to its output channel axis.
 Where axis=-1 is the last axis
 """
 DEFAULT_OUT_CHANNEL_AXIS_DICT = DefaultDict({Conv2d: 1,
+                                             Conv1d: 1,
                                              Linear: -1,
                                              ConvTranspose2d: 1},
                                             lambda: 1)

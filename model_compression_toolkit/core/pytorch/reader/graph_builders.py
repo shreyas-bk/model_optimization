@@ -141,12 +141,18 @@ def nodes_builder(model: GraphModule,
         # extract input shapes
         input_shape = []
         if node.op != PLACEHOLDER:
+            
             for input_node in node.all_input_nodes:
                 tensor_meta = input_node.meta
+                if ('attention' in str(node.name)):
+                    print(tensor_meta[TYPE])
                 if tensor_meta[TYPE] == torch.Tensor:
-                    input_shape += [list(tensor_meta[TENSOR_META].shape)]
+                    if 'attention' in str(node.name):
+                        input_shape += [list(tensor_meta[TENSOR_META].shape)]+[list(tensor_meta[TENSOR_META].shape)]+[list(tensor_meta[TENSOR_META].shape)]
+                    else:
+                        input_shape += [list(tensor_meta[TENSOR_META].shape)]
                 elif tensor_meta[TYPE] == tuple:
-                    input_shape += [list(n.shape) for n in tensor_meta[TENSOR_META]]
+                    input_shape += [list(n.shape) for n in tensor_meta[TENSOR_META] if n is not None]
                 elif tensor_meta[TYPE] == int:
                     input_shape += [[1]]
 
@@ -154,7 +160,7 @@ def nodes_builder(model: GraphModule,
         if node.meta[TYPE] == torch.Tensor:
             output_shape = [list(node.meta[TENSOR_META].shape)]
         elif node.meta[TYPE] in (list, tuple):
-            output_shape = [list(m.shape) for m in node.meta[TENSOR_META]]
+            output_shape = [list(m.shape) for m in node.meta[TENSOR_META] if m is not None]
         elif node.meta[TYPE] == int:
             output_shape = [[1]]
         else:

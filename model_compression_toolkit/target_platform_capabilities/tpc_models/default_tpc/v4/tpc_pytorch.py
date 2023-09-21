@@ -18,7 +18,7 @@ import operator
 import torch
 from torch import add, sub, mul, div, flatten, reshape, split, unsqueeze, dropout, sigmoid, tanh, chunk, unbind, \
     permute, transpose, equal, gather, topk
-from torch.nn import Conv2d, Linear, BatchNorm2d, ConvTranspose2d
+from torch.nn import Conv2d, Linear, BatchNorm2d, ConvTranspose2d, Conv1d
 from torch.nn import Dropout, Flatten, Hardtanh
 from torch.nn import ReLU, ReLU6, PReLU, SiLU, Sigmoid, Tanh, Hardswish, LeakyReLU
 from torch.nn.functional import relu, relu6, prelu, silu, hardtanh, hardswish, leaky_relu, layer_norm
@@ -72,6 +72,7 @@ def generate_pytorch_tpc(name: str, tp_model: tp.TargetPlatformModel):
                                                     topk])
 
         tp.OperationsSetToLayers("Conv", [Conv2d, ConvTranspose2d])
+        tp.OperationsSetToLayers("Conv1d", [Conv1d])
         tp.OperationsSetToLayers("LN", [layer_norm])
         tp.OperationsSetToLayers("FullyConnected", [Linear])
         tp.OperationsSetToLayers("AnyReLU", [torch.relu,

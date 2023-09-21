@@ -80,7 +80,6 @@ def _run_operation(
         A tuple of Pytorch tensors. The Module/functional output tensors after applying the
         Module/functional to the input tensors.
     """
-
     op_call_args = n.op_call_args if isinstance(n, FunctionalNode) else []
     functional_kwargs = n.op_call_kwargs if isinstance(n, FunctionalNode) else {}
     # print(n.name)
@@ -100,6 +99,18 @@ def _run_operation(
         #     out_tensors_of_n_float = op_func(*input_tensors + op_call_args, **functional_kwargs)
         # if len(input_tensors)>2:
         #     print(op_call_args)
+        # print(op_call_args)
+        # print(n.name)
+        # if  'reshape' in n.name:
+        #     # print(input_tensors[0].shape)
+        #     op_call_args[0] = list(op_call_args[0])
+        #     op_call_args[0][0] = input_tensors[0].shape[0]
+        #     op_call_args[0] = tuple(op_call_args[0])
+        # for tensor in input_tensors:
+        #     try:
+        #         print(tensor.max(), tensor.min())
+        #     except:
+        #         pass
         out_tensors_of_n_float = op_func(*input_tensors + op_call_args, **functional_kwargs)
 
     # Add a fake quant node if the node has an activation threshold.
@@ -107,9 +118,9 @@ def _run_operation(
     if use_activation_quantization:
         if isinstance(out_tensors_of_n_float, list):
             out_tensors_of_n_float = torch.cat(out_tensors_of_n_float, dim=0)
-        # print(n.name)
         out_tensors_of_n = quantize_node_activation_fn(out_tensors_of_n_float)
-        # print(out_tensors_of_n.shape)
+        if 'add_5' in n.name:
+            out_tensors_of_n -= 0
 
     return out_tensors_of_n, out_tensors_of_n_float
 
@@ -139,7 +150,10 @@ def _generate_outputs(out_nodes: List[BaseNode], node_to_output_tensors_dict: di
     """
     output = []
     for n in out_nodes:
+        # print(n.name)
         out_tensors_of_n = _find_by_node_name(node_to_output_tensors_dict, n.name)
+        # if 'floordiv' in n.name:
+        #     out_tensors_of_n[0] = torch.tensor(out_tensors_of_n[0])
         if len(out_tensors_of_n) > 1:
             output.append(out_tensors_of_n)
         else:
@@ -236,9 +250,12 @@ class PytorchModel(torch.nn.Module):
         """
         Build and add the modules and functional nodes from node_sort list as attributes to PytorchModel
         """
+
+        test_mode = False
+        add_flag = False
+        
         for node in self.node_sort:
-            
-            do_not_quantize = False#node.name in self.layers_to_not_quantize or (len(self.layers_to_not_quantize)>0 and self.layers_to_not_quantize[0]==-1)
+            do_not_quantize = node.name in self.layers_to_not_quantize or (len(self.layers_to_not_quantize)>0 and self.layers_to_not_quantize[0]==-1)
             node_op = self.wrap(node, do_not_quantize)
             if isinstance(node, FunctionalNode):
                 # for functional layers
@@ -252,15 +269,24 @@ class PytorchModel(torch.nn.Module):
 
             # Add activation quantization modules if an activation holder is configured for this node
             # print(node.name, node.is_activation_quantization_enabled(), self.get_activation_quantizer_holder)
-            
+
             if node.is_activation_quantization_enabled() and self.get_activation_quantizer_holder is not None and not do_not_quantize:
                 activation_quantizer_holder = self.get_activation_quantizer_holder(node)
                 if activation_quantizer_holder is not None:
-                    # print(node.name)
                     self.add_module(node.name + "_" + ACTIVATION_HOLDER_QUANTIZER, activation_quantizer_holder)
+                    if add_flag and test_mode:
+                        # print(node.name)
+                        # print('ADDING EXTRA ACTIVATION HOLDER')
+                        # max_range = activation_quantizer_holder.activation_holder_quantizer.range_max
+                        # min_range = activation_quantizer_holder.activation_holder_quantizer.range_min
+                        # activation_quantizer_holder.activation_holder_quantizer.scale = float((max_range - min_range) / ((2 ** 4) - 1))
+                        # self.add_module(node.name + "_" + ACTIVATION_HOLDER_QUANTIZER+'2', activation_quantizer_holder)
+                        add_flag = False
                     self.node_to_activation_quantization_holder.update(
                         {node.name: node.name + "_" + ACTIVATION_HOLDER_QUANTIZER}
                     )
+            if 'add' in node.name:
+                add_flag = True
 
     def forward(self, *args: Any) -> Any:
         """
@@ -274,12 +300,9 @@ class PytorchModel(torch.nn.Module):
         configurable_nodes = self.graph.get_configurable_sorted_nodes_names()
         for node in self.node_sort:
             input_tensors = _build_input_tensors_list(node, self.graph, args, node_to_output_tensors_dict)
-            if 'layer_norm' in node.name:
-                input_tensors = input_tensors[:1]+[(512, )]+input_tensors[1:]
-
             op_func = self._get_op_func(node, configurable_nodes)
-            use_activation_quantization, activation_quantization_fn = self._get_activation_quantization_fn(node)
 
+            use_activation_quantization, activation_quantization_fn = self._get_activation_quantization_fn(node)
             # Run node operation and fetch outputs
             out_tensors_of_n, out_tensors_of_n_float = _run_operation(
                 node,
@@ -288,7 +311,10 @@ class PytorchModel(torch.nn.Module):
                 quantize_node_activation_fn=activation_quantization_fn,
                 use_activation_quantization=use_activation_quantization,
             )
-            # print(out_tensors_of_n.flatten()[-1])
+            if 'global_avg_pool2d_36' in node.name:
+                from collections import Counter
+                # print(input_tensors[0][0][0].sum())
+                # print(out_tensors_of_n.unique(return_counts = True))
 
             if isinstance(out_tensors_of_n, list):
                 node_to_output_tensors_dict.update({node: out_tensors_of_n})
@@ -309,6 +335,7 @@ class PytorchModel(torch.nn.Module):
             )
             if len(outputs) == 1:
                 outputs = outputs[0]
+        
         return outputs
 
     def _get_op_func(self, node: BaseNode, configurable_nodes_names: List[str]) -> Any:

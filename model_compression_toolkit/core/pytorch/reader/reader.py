@@ -85,9 +85,12 @@ def fx_graph_module_generation(pytorch_model: torch.nn.Module,
     """
     set_model(pytorch_model)
     symbolic_traced = symbolic_trace(pytorch_model)
+    print(symbolic_traced)
     inputs = next(representative_data_gen())
-    input_for_shape_infer = [to_tensor(i) for i in inputs]
+    input_for_shape_infer = [to_tensor(i) for i in inputs if not isinstance(i, int)]
     ShapeProp(symbolic_traced).propagate(*input_for_shape_infer)
+    # for node in symbolic_traced.graph.nodes:
+    #     print(node.name, node.meta)
     return symbolic_traced
 
 
